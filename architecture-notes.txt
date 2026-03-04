@@ -1,0 +1,135 @@
+ROOM BOOKING SYSTEM - ARCHITECTURE NOTES
+=========================================
+
+1. HOW OVERLAPPING BOOKINGS ARE PREVENTED
+------------------------------------------
+The system prevents double bookings using SQL-based date overlap detection:
+
+Logic:
+- When a user attempts to book a room, the backend checks for existing bookings
+- Overlap condition: (start_date <= new_end_date) AND (end_date >= new_start_date)
+- This catches all possible overlap scenarios:
+  * New booking completely contains existing booking
+  * Existing booking completely contains new booking
+  * Partial overlap at start or end
+  * Exact date match
+
+Implementation:
+- Database query runs before creating booking
+- Uses database transactions to ensure atomicity
+- If overlap found, returns 400 error with message
+- Only creates booking if no conflicts exist
+
+Benefits:
+- Database-level validation ensures consistency
+- Race conditions handled by transaction isolation
+- Index on (room_id, start_date, end_date) for performance
+
+
+2. HOW FRONTEND COMMUNICATES WITH BACKEND
+------------------------------------------
+Communication Pattern:
+- RESTful API architecture
+- JSON data format for all requests/responses
+- Axios library for HTTP requests
+- JWT token-based authentication
+
+Flow:
+1. User logs in → Backend returns JWT token
+2. Frontend stores token in localStorage
+3. All subsequent requests include token in Authorization header
+4. Backend middleware validates token before processing requests
+5. Protected routes redirect to login if token missing/invalid
+
+API Service Layer:
+- Centralized API calls in services/api.js
+- Automatic token attachment via Axios interceptors
+- Error handling and response formatting
+- Base URL configuration for environment flexibility
+
+
+3. WHY THIS FOLDER STRUCTURE WAS CHOSEN
+----------------------------------------
+Backend Structure:
+/config       - Database and environment configuration (separation of concerns)
+/controllers  - Request handling and response logic (thin layer)
+/services     - Business logic and database operations (reusable)
+/middleware   - Authentication and validation (cross-cutting concerns)
+/routes       - API endpoint definitions (clear API surface)
+
+Benefits:
+- Separation of concerns (MVC-like pattern)
+- Easy to test individual components
+- Services can be reused across controllers
+- Middleware can be applied to multiple routes
+- Clear responsibility for each layer
+
+Frontend Structure:
+/components   - Reusable UI components (Navbar, RoomCard, etc.)
+/pages        - Full page components (Login, Dashboard, etc.)
+/services     - API communication layer
+
+Benefits:
+- Component reusability
+- Clear separation between pages and components
+- Centralized API logic
+- Easy to add new features
+
+
+4. HOW THE SYSTEM COULD SCALE IN THE FUTURE
+--------------------------------------------
+Database Scaling:
+- Add read replicas for room listings (read-heavy operation)
+- Implement database connection pooling (already configured)
+- Add caching layer (Redis) for frequently accessed rooms
+- Partition bookings table by date ranges for large datasets
+- Add database indexes on frequently queried columns
+
+Backend Scaling:
+- Stateless design allows horizontal scaling (multiple server instances)
+- Load balancer can distribute traffic across servers
+- JWT tokens eliminate need for session storage
+- Implement rate limiting to prevent abuse
+- Add message queue (RabbitMQ/Redis) for async operations
+
+Frontend Scaling:
+- Implement code splitting and lazy loading
+- Add CDN for static assets
+- Implement pagination for room listings
+- Add client-side caching (React Query)
+- Progressive Web App (PWA) capabilities
+
+Feature Enhancements:
+- Add room images and galleries
+- Implement search and filtering (price, amenities)
+- Add payment gateway integration
+- Email notifications for bookings
+- Admin panel for room management
+- Reviews and ratings system
+- Real-time availability updates (WebSockets)
+- Multi-language support
+- Mobile app (React Native)
+
+Performance Optimizations:
+- Implement caching strategies (Redis)
+- Database query optimization
+- API response compression
+- Image optimization and lazy loading
+- Implement GraphQL for flexible data fetching
+
+Security Enhancements:
+- Add refresh token mechanism
+- Implement rate limiting
+- Add CORS configuration
+- Input validation and sanitization
+- SQL injection prevention (parameterized queries)
+- XSS protection
+- HTTPS enforcement
+- Security headers (Helmet.js)
+
+Monitoring & Observability:
+- Add logging system (Winston, Morgan)
+- Error tracking (Sentry)
+- Performance monitoring (New Relic, DataDog)
+- Analytics integration
+- Health check endpoints

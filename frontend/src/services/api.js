@@ -1,0 +1,40 @@
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+};
+
+export const roomAPI = {
+  getAllRooms: () => api.get('/rooms'),
+};
+
+export const bookingAPI = {
+  checkAvailability: (data) => api.post('/bookings/check-availability', data),
+  createBooking: (data) => api.post('/bookings', data),
+  getMyBookings: () => api.get('/bookings/my-bookings'),
+};
+
+export default api;
